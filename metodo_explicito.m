@@ -16,11 +16,6 @@ k2=0.400;
 k3=0.030;
 k4=0.250;
 
-
-%https://www.studocu.com/es/document/universidade-de-vigo/termodinamica-e-transmision-de-calor/tablas-de-calor/17847611
-%https://ingemecanica.com/tutoriales/pesos.html#otros
-%https://www.arquimaster.com.ar/descargas/articulo410.pdf
-
 % J/K.Kg;
 c1=840; 
 c2=790; 
