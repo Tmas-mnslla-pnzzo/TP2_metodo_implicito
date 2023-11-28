@@ -1,14 +1,15 @@
-graphics_toolkit("gnuplot")
+graphics_toolkit qt
 
 %constantes:
-
 T_ext=40;
 T_con=20;
 
+%cm
 l1=3;
-l2=5;
+l2=12;
 l3=5;
-l4=2;
+l4=1;
+
 %W / (m K)
 k1=1;
 k2=0.400;
@@ -20,10 +21,11 @@ k4=0.250;
 %https://ingemecanica.com/tutoriales/pesos.html#otros
 %https://www.arquimaster.com.ar/descargas/articulo410.pdf
 
-c1=840*274.15 ; % J/K.Kg;
-c2=1330; % J/°C.Kg;
-c3=1673.6; % J/°C.Kg; 
-c4=1000*274.15; % J/K.Kg; 
+% J/K.Kg;
+c1=840; 
+c2=790; 
+c3=1600; 
+c4=1000;  
 
 %kg / m3
 P1=1800;
@@ -32,27 +34,33 @@ P3=20;
 P4=600;
 
 %parametros:
+h=2;
+t_final=20000;
+r1=1;
+r2=5;
 
-t_final=50;
+Dt=(h/r1);
+Dx=(h/r2);
 
-Dt=0.5;
-Dx=0.5;
-h=1;
+beta1=k1/(c1*P1)*100*100;
+beta2=k2/(c2*P2)*100*100;
+beta3=k3/(c3*P3)*100*100;
+beta4=k4/(c4*P4)*100*100;
 
-beta1=k1/(c1*P1);
-beta2=k2/(c2*P2);
-beta3=k3/(c3*P3);
-beta4=k4/(c4*P4);
-
-n1=l1/Dx;
-n2=l2/Dx;
-n3=l3/Dx;
-n4=l4/Dx;
+n1=(l1/Dx)*h;
+n2=(l2/Dx)*h;
+n3=(l3/Dx)*h;
+n4=(l4/Dx)*h;
 
 gamma1=((Dt/(Dx*Dx))*beta1);
 gamma2=((Dt/(Dx*Dx))*beta2);
 gamma3=((Dt/(Dx*Dx))*beta3);
 gamma4=((Dt/(Dx*Dx))*beta4);
+
+gamma1<0.5;
+gamma2<0.5;
+gamma3<0.5;
+gamma4<0.5;
 
 %funciones
 
@@ -80,40 +88,45 @@ function map=mapa(n,gam,U,T_con,t_final,Dt)
     V=[V F];
     F(1,:)=[];
   end
-  map=V';
+  V=V';
+  V=[U V];
+  V(:,end)=[];
+  map=V;
 endfunction
 
-M1=matriz_i(n1-1,0.5);
+M1=matriz_i(n1-1,gamma1);
 U1=[T_ext;ones(size(M1)(2)-1,1)*T_con];
 V=[U1];
+
 for j=1:1:(1/Dt)*t_final
   U1=M1*U1;
   V=[V U1];
 end
 
-Z1=V';
-X1=[0: Dx/h: l1/h];
-Y1=[0: Dt: t_final];
+Gf=6;
 
-U2=Z1(:,n1+1);
-Z2=mapa(n2,0.5,U2,T_con,t_final,Dt);
-X2=[0: Dx/h: l2/h];
+Z1=V'; X1=[0: Dx/h: l1]; Y=[0: Dt*(2**Gf): t_final];
 
-U3=Z2(:,n2+1);
-Z3=mapa(n3,0.5,U3,T_con,t_final,Dt);
-X3=[0: Dx/h: l3/h];
+U2=Z1(:,n1+1); Z2=mapa(n2,gamma2,U2,T_con,t_final,Dt); X2=[0: Dx/h: l2];
+ 
+U3=Z2(:,n2+1); Z3=mapa(n3,gamma3,U3,T_con,t_final,Dt); X3=[0: Dx/h: l3];
 
-U4=Z3(:,n3+1);
-Z4=mapa(n4,0.5,U4,T_con,t_final,Dt);
-X4=[0: Dx/h: l4/h];
+U4=Z3(:,n3+1); Z4=mapa(n4,gamma4,U4,T_con,t_final,Dt); X4=[0: Dx/h: l4];
 
-Z_f1=horzcat(Z1,Z2);
-X_f1=horzcat(X1,X2+l1/h);
+Z_f1=horzcat(Z1,Z2); X_f1=horzcat(X1,X2+l1);
 
-Z_f2=horzcat(Z_f1,Z3);
-X_f2=horzcat(X_f1,X3+l2/h+l1/h);
+Z_f2=horzcat(Z_f1,Z3); X_f2=horzcat(X_f1,X3+l2+l1);
 
-Z_f3=horzcat(Z_f2,Z4);
-X_f3=horzcat(X_f2,X4+l3/h+l2/h+l1/h);
+Z=horzcat(Z_f2,Z4); X=horzcat(X_f2,X4+l3+l2+l1);
 
-surf(X_f3,Y1,Z_f3)
+Zf=Z'(:,end);
+
+for gf=1:1:Gf
+  Z(2:2:end,:)=[];
+end
+
+subplot (2, 2, 3);
+  plot(X,Zf); title('Temperatura en el tiempo final. U(x,t_f)' ); xlabel ("Distancia [cm]"); ylabel ("Temperatura [°C]");
+subplot (2, 2, 1);
+  waterfall(X,Y,Z); title('Temperatura U(x,t)' ); xlabel ("Distancia [cm]"); ylabel ("Tiempo [s]"); zlabel("Temperatura [°C]");
+
